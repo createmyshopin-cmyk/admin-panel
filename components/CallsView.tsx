@@ -61,7 +61,7 @@ export default function CallsView() {
     } catch (e) {
       console.warn('CallsView failed to fetch calls from API:', e);
     }
-    const all = MockDatabase.getCalls();
+    const all: Call[] = [];
     setCalls(all);
     setActiveCallList(all.filter(c => c.status === 'active'));
     setIsLive(false);

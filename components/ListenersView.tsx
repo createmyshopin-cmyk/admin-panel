@@ -102,8 +102,8 @@ export default function ListenersView({ onRefreshStats, subTab = 'active' }: Lis
       console.warn('ListenersView failed to load live API data, falling back to mockDb:', e);
     }
 
-    setListeners(MockDatabase.getListeners());
-    setWithdraws(MockDatabase.getWithdrawRequests());
+    setListeners([]);
+    setWithdraws([]);
     setIsLive(false);
   };
 

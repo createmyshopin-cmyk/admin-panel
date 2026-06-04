@@ -83,15 +83,10 @@ export default function UsersView({ onRefreshStats, selectedUserId, onClearSelec
       console.warn('UsersView failed to fetch live users, falling back to mockDb:', e);
     }
 
-    const allUsers = MockDatabase.getUsers();
-    setUsers(allUsers);
+    setUsers([]);
     setIsLive(false);
-    if (selectedUserId) {
-      const matched = allUsers.find(u => u.id === selectedUserId);
-      if (matched) {
-        setActiveUser(matched);
-      }
-      if (onClearSelectedUser) onClearSelectedUser();
+    if (selectedUserId && onClearSelectedUser) {
+      onClearSelectedUser();
     }
   };
 

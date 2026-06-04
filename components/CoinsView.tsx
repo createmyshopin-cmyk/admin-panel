@@ -46,7 +46,7 @@ export default function CoinsView() {
     } catch (e) {
       console.warn('CoinsView failed to fetch packages from API:', e);
     }
-    setPackages(MockDatabase.getCoinPackages());
+    setPackages([]);
     setIsLive(false);
   };
 

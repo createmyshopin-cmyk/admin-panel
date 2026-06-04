@@ -44,8 +44,8 @@ export default function PaymentsView() {
     } catch (e) {
       console.warn('PaymentsView failed to load payments history from API:', e);
     }
-    setPayments(MockDatabase.getPayments());
-    setUsers(MockDatabase.getUsers());
+    setPayments([]);
+    setUsers([]);
     setIsLive(false);
   };
 

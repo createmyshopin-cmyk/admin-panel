@@ -33,7 +33,7 @@ export default function WalletView() {
     } catch (e) {
       console.warn('WalletView failed to fetch transactions from API:', e);
     }
-    setTxns(MockDatabase.getTransactions());
+    setTxns([]);
     setIsLive(false);
   };
 

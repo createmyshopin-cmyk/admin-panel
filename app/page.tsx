@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, PhoneCall, Wallet, Coins, CreditCard, 
   Bell, ShieldAlert, BarChart3, Settings, UserCheck, Search, Command, X, ArrowUpRight,
-  Sun, Moon
+  Sun, Moon, LogOut
 } from 'lucide-react';
 
 // Subviews
@@ -24,8 +25,12 @@ import FinanceDashboard from '../components/FinanceDashboard';
 
 import { MockDatabase, User, Listener } from '../lib/mockDb';
 import { API_BASE, getHeaders } from '../lib/api';
+import { clearSession, getAdminUser, isAuthenticated, type AdminUser } from '../lib/auth';
 
 export default function Home() {
+  const router = useRouter();
+  const [authReady, setAuthReady] = useState(false);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [subTab, setSubTab] = useState<any>(undefined);
   
@@ -33,11 +38,25 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace('/login');
+      return;
+    }
+    setAdminUser(getAdminUser());
+    setAuthReady(true);
+  }, [router]);
+
+  useEffect(() => {
     const savedTheme = localStorage.getItem('coincall_theme') as 'dark' | 'light' | null;
     if (savedTheme) {
       setTheme(savedTheme);
     }
   }, []);
+
+  const handleLogout = () => {
+    clearSession();
+    router.replace('/login');
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -72,27 +91,20 @@ export default function Home() {
       if (pendingRes.ok) {
         const pendingData = await pendingRes.json();
         pendingCount = pendingData.length;
-      } else {
-        pendingCount = MockDatabase.getListeners().filter(l => l.status === 'pending').length;
       }
 
       if (withdrawsRes.ok) {
         const withdrawsData = await withdrawsRes.json();
         withdrawsCount = withdrawsData.filter((w: any) => w.status === 'pending').length;
-      } else {
-        withdrawsCount = MockDatabase.getWithdrawRequests().filter(w => w.status === 'pending').length;
       }
 
       setPendingListenersCount(pendingCount);
       setPendingWithdrawsCount(withdrawsCount);
     } catch (e) {
-      console.warn('refreshBadges failed to load live data, falling back to mockDb:', e);
-      setPendingListenersCount(MockDatabase.getListeners().filter(l => l.status === 'pending').length);
-      setPendingWithdrawsCount(MockDatabase.getWithdrawRequests().filter(w => w.status === 'pending').length);
+      console.warn('refreshBadges failed to load live data:', e);
     }
 
-    const reports = MockDatabase.getReports();
-    setPendingReportsCount(reports.filter(r => r.status === 'pending').length);
+    setPendingReportsCount(0);
   };
 
   useEffect(() => {
@@ -240,6 +252,18 @@ export default function Home() {
     { id: 'admins', label: 'Admin Access', icon: Users }
   ];
 
+  if (!authReady) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">
+        Loading console…
+      </div>
+    );
+  }
+
+  const displayName = adminUser?.name || 'Admin';
+  const displayRole = adminUser?.role?.replace(/_/g, ' ') || 'Administrator';
+  const initials = displayName.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+
   return (
     <div className={theme}>
       <div className="flex h-screen bg-background font-sans antialiased text-foreground transition-colors duration-200">
@@ -291,17 +315,24 @@ export default function Home() {
           </div>
 
           {/* Footer Admin info */}
-          <div className="p-4 border-t border-border flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs">
-                AD
+          <div className="p-4 border-t border-border flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                {initials}
               </div>
-              <div>
-                <span className="text-xs font-semibold text-foreground block">Sarah Mod</span>
-                <span className="text-[10px] text-zinc-500 block">Moderator</span>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-foreground block truncate">{displayName}</span>
+                <span className="text-[10px] text-zinc-500 block capitalize truncate">{displayRole}</span>
               </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-500" title="Console Active"></span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="p-1.5 text-zinc-500 hover:text-foreground rounded-lg hover:bg-secondary/60"
+              title="Sign out"
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         </aside>
 

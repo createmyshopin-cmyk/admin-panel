@@ -6,8 +6,9 @@ import {
   Users, PhoneCall, DollarSign, Coins, AlertCircle, TrendingUp, 
   Clock, ArrowUpRight, CheckCircle2, UserCheck, Smartphone, UserMinus
 } from 'lucide-react';
-import { MockDatabase, User, Listener, Call, Payment, SafetyReport, WithdrawRequest } from '../lib/mockDb';
+import { User, Listener, Call, Payment, SafetyReport, WithdrawRequest } from '../lib/mockDb';
 import { API_BASE, getHeaders } from '../lib/api';
+import LiveDataBanner from './LiveDataBanner';
 
 interface DashboardViewProps {
   onNavigate: (tab: string, arg?: string) => void;
@@ -149,20 +150,20 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           adminNote: w.admin_note
         })));
 
-        setReports(MockDatabase.getReports());
+        setReports([]);
         setIsLive(true);
         return;
       }
     } catch (e) {
-      console.warn('DashboardView failed to fetch live API data, falling back to mockDb:', e);
+      console.warn('DashboardView failed to fetch live API data:', e);
     }
 
-    setUsers(MockDatabase.getUsers());
-    setListeners(MockDatabase.getListeners());
-    setCalls(MockDatabase.getCalls());
-    setPayments(MockDatabase.getPayments());
-    setReports(MockDatabase.getReports());
-    setWithdrawRequests(MockDatabase.getWithdrawRequests());
+    setUsers([]);
+    setListeners([]);
+    setCalls([]);
+    setPayments([]);
+    setReports([]);
+    setWithdrawRequests([]);
     setIsLive(false);
   };
 
@@ -172,18 +173,19 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
 
   // Stats Calculations
   const totalUsers = users.length;
-  const activeUsersToday = users.filter(u => u.status === 'active').length; // Mock Active Users Today
-  const onlineUsers = Math.max(2, Math.floor(users.filter(u => u.status === 'active').length * 0.4)); // Mock online users
-  
+  const activeUsersToday = users.filter(u => u.status === 'active').length;
+  const onlineUsers = users.filter(u => u.status === 'active').length;
+
   const totalListeners = listeners.length;
-  const onlineListeners = listeners.filter(l => l.status === 'active').length; // Online Listeners
-  
-  const callsToday = calls.filter(c => c.date.startsWith('2026-06-03') || c.date.startsWith('2026-06-04')).length;
+  const onlineListeners = listeners.filter(l => l.status === 'active').length;
+
+  const todayPrefix = new Date().toISOString().split('T')[0];
+  const callsToday = calls.filter(c => c.date.startsWith(todayPrefix)).length;
   const activeCalls = calls.filter(c => c.status === 'active').length;
   
   const totalRevenue = payments.filter(p => p.status === 'success').reduce((sum, p) => sum + p.amount, 0);
   const todayRevenue = payments
-    .filter(p => p.status === 'success' && (p.date.startsWith('2026-06-03') || p.date.startsWith('2026-06-04')))
+    .filter(p => p.status === 'success' && p.date.startsWith(todayPrefix))
     .reduce((sum, p) => sum + p.amount, 0);
     
   const totalCoinsSold = payments.filter(p => p.status === 'success').reduce((sum, p) => sum + p.coins, 0);
@@ -194,7 +196,15 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const generateRevenuePath = (period: 'daily' | 'weekly' | 'monthly') => {
     let data: number[] = [];
     if (period === 'daily') {
-      data = [200, 450, 300, 600, 800, 500, todayRevenue || 350]; // mock + today
+      const last7 = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        const prefix = d.toISOString().split('T')[0];
+        return payments
+          .filter(p => p.status === 'success' && p.date.startsWith(prefix))
+          .reduce((sum, p) => sum + p.amount, 0);
+      });
+      data = last7;
     } else if (period === 'weekly') {
       data = [2500, 3200, 4100, 2800, 4500, 5800, 6200];
     } else {
@@ -242,7 +252,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
               : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-            {isLive ? 'Live Sync Active' : 'Fallback Sandbox'}
+            {isLive ? 'Live data' : 'Not connected'}
           </span>
           <button 
             onClick={loadLiveDashboard}
@@ -252,6 +262,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </button>
         </div>
       </div>
+
+      <LiveDataBanner isLive={isLive} label="dashboard" />
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">

@@ -2,13 +2,15 @@
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend-api-production-140f.up.railway.app/api';
 
+import { getToken } from './auth';
+
 export function getHeaders(): Record<string, string> {
   if (typeof window === 'undefined') {
     return {
       'Content-Type': 'application/json',
     };
   }
-  const token = localStorage.getItem('token') || localStorage.getItem('coincall_admin_token') || '';
+  const token = getToken();
   return {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
