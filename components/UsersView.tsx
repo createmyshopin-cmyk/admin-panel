@@ -92,6 +92,8 @@ export default function UsersView({ onRefreshStats, selectedUserId, onClearSelec
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
   }, [selectedUserId]);
 
   const handleUpdate = () => {
