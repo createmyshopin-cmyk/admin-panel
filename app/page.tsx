@@ -23,6 +23,7 @@ import AdminsView from '../components/AdminsView';
 import FinanceDashboard from '../components/FinanceDashboard';
 
 import { MockDatabase, User, Listener } from '../lib/mockDb';
+import { API_BASE, getHeaders } from '../lib/api';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -58,13 +59,39 @@ export default function Home() {
   // Global user search jump target
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
 
-  const refreshBadges = () => {
-    const list = MockDatabase.getListeners();
-    const withdraws = MockDatabase.getWithdrawRequests();
-    const reports = MockDatabase.getReports();
+  const refreshBadges = async () => {
+    try {
+      const [pendingRes, withdrawsRes] = await Promise.all([
+        fetch(`${API_BASE}/creators/pending`, { headers: getHeaders() }),
+        fetch(`${API_BASE}/admin/withdrawals`, { headers: getHeaders() })
+      ]);
 
-    setPendingListenersCount(list.filter(l => l.status === 'pending').length);
-    setPendingWithdrawsCount(withdraws.filter(w => w.status === 'pending').length);
+      let pendingCount = 0;
+      let withdrawsCount = 0;
+
+      if (pendingRes.ok) {
+        const pendingData = await pendingRes.json();
+        pendingCount = pendingData.length;
+      } else {
+        pendingCount = MockDatabase.getListeners().filter(l => l.status === 'pending').length;
+      }
+
+      if (withdrawsRes.ok) {
+        const withdrawsData = await withdrawsRes.json();
+        withdrawsCount = withdrawsData.filter((w: any) => w.status === 'pending').length;
+      } else {
+        withdrawsCount = MockDatabase.getWithdrawRequests().filter(w => w.status === 'pending').length;
+      }
+
+      setPendingListenersCount(pendingCount);
+      setPendingWithdrawsCount(withdrawsCount);
+    } catch (e) {
+      console.warn('refreshBadges failed to load live data, falling back to mockDb:', e);
+      setPendingListenersCount(MockDatabase.getListeners().filter(l => l.status === 'pending').length);
+      setPendingWithdrawsCount(MockDatabase.getWithdrawRequests().filter(w => w.status === 'pending').length);
+    }
+
+    const reports = MockDatabase.getReports();
     setPendingReportsCount(reports.filter(r => r.status === 'pending').length);
   };
 

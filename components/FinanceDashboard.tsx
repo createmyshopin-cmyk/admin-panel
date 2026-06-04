@@ -7,8 +7,7 @@ import {
   Clock, CheckCircle2, Award, Download, Calendar, BarChart3, AlertCircle 
 } from 'lucide-react';
 import { MockDatabase } from '../lib/mockDb';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { API_BASE, getHeaders } from '../lib/api';
 
 interface OverviewMetrics {
   todayRevenue: number;
@@ -103,13 +102,6 @@ export default function FinanceDashboard() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const getHeaders = () => {
-    const token = localStorage.getItem('token') || localStorage.getItem('coincall_admin_token') || '';
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  };
 
   const loadData = async () => {
     setLoading(true);

@@ -7,6 +7,7 @@ import {
   Clock, ArrowUpRight, CheckCircle2, UserCheck, Smartphone, UserMinus
 } from 'lucide-react';
 import { MockDatabase, User, Listener, Call, Payment, SafetyReport, WithdrawRequest } from '../lib/mockDb';
+import { API_BASE, getHeaders } from '../lib/api';
 
 interface DashboardViewProps {
   onNavigate: (tab: string, arg?: string) => void;
@@ -20,14 +21,153 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const [reports, setReports] = useState<SafetyReport[]>([]);
   const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequest[]>([]);
   const [revenueTab, setRevenueTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [isLive, setIsLive] = useState(false);
 
-  useEffect(() => {
+  const loadLiveDashboard = async () => {
+    try {
+      const usersRes = await fetch(`${API_BASE}/users`, { headers: getHeaders() });
+      const activeCreatorsRes = await fetch(`${API_BASE}/creators/active`, { headers: getHeaders() });
+      const pendingCreatorsRes = await fetch(`${API_BASE}/creators/pending`, { headers: getHeaders() });
+      const suspendedCreatorsRes = await fetch(`${API_BASE}/creators/suspended`, { headers: getHeaders() });
+      const activeCallsRes = await fetch(`${API_BASE}/calls/active`, { headers: getHeaders() });
+      const historyCallsRes = await fetch(`${API_BASE}/calls`, { headers: getHeaders() });
+      const paymentsRes = await fetch(`${API_BASE}/payments/history`, { headers: getHeaders() });
+      const withdrawRes = await fetch(`${API_BASE}/admin/withdrawals`, { headers: getHeaders() });
+
+      if (usersRes.ok && activeCreatorsRes.ok && pendingCreatorsRes.ok && suspendedCreatorsRes.ok && activeCallsRes.ok && historyCallsRes.ok && paymentsRes.ok && withdrawRes.ok) {
+        const usersData = await usersRes.json();
+        const activeCreatorsData = await activeCreatorsRes.json();
+        const pendingCreatorsData = await pendingCreatorsRes.json();
+        const suspendedCreatorsData = await suspendedCreatorsRes.json();
+        const activeCallsData = await activeCallsRes.json();
+        const historyCallsData = await historyCallsRes.json();
+        const paymentsData = await paymentsRes.json();
+        const withdrawData = await withdrawRes.json();
+
+        setUsers(usersData.map((u: any) => ({
+          id: u.id,
+          name: u.name || 'Unknown User',
+          image: u.profile_image || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          phone: u.phone || 'N/A',
+          email: u.email || 'N/A',
+          coins: u.coins || 0,
+          totalCalls: u.total_calls || 0,
+          totalDuration: u.total_duration || 0,
+          totalRecharge: u.total_recharge || 0,
+          totalSpent: u.total_spent || 0,
+          country: u.country || 'India',
+          device: u.device || 'Android Device',
+          registeredAt: u.created_at || new Date().toISOString(),
+          status: u.status || 'active',
+          reportsCount: 0,
+          safetyScore: 100
+        })));
+
+        const combinedCreators = [
+          ...activeCreatorsData.map((c: any) => ({ ...c, status: 'active' })),
+          ...pendingCreatorsData.map((c: any) => ({ ...c, status: 'pending' })),
+          ...suspendedCreatorsData.map((c: any) => ({ ...c, status: 'suspended' }))
+        ].map((c: any) => ({
+          id: c.id,
+          name: c.name || c.user?.name || 'Unknown Host',
+          image: c.profile_image || c.user?.profile_image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          phone: c.phone || c.user?.phone || 'N/A',
+          email: c.email || c.user?.email || 'N/A',
+          bio: c.bio || '',
+          languages: c.languages ? c.languages.split(',') : ['English'],
+          gender: c.gender || c.user?.gender || 'Female',
+          experience: c.experience || '1 Year',
+          status: c.status,
+          rating: Number(c.rating || 0),
+          completedCalls: Number(c.total_calls || 0),
+          revenueGenerated: Number(c.total_earnings || 0),
+          commissionRate: 60,
+          joinDate: c.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          acceptanceRate: 100,
+          missedCallRate: 0,
+          earningsToday: 0,
+          earningsWeek: 0,
+          earningsMonth: 0,
+          earningsLifetime: Number(c.total_earnings || 0)
+        }));
+        setListeners(combinedCreators);
+
+        const mappedActiveCalls = activeCallsData.map((c: any) => ({
+          id: c.id,
+          callerId: c.callerId,
+          callerName: c.callerName || 'User',
+          listenerId: c.creatorId,
+          listenerName: c.creatorName || 'Host',
+          type: c.type || 'voice',
+          status: 'active' as const,
+          duration: c.durationSeconds || 0,
+          coinsConsumed: c.coinsSpent || 0,
+          date: c.startedAt || new Date().toISOString()
+        }));
+
+        const mappedHistoryCalls = historyCallsData.map((c: any) => ({
+          id: c.id,
+          callerId: c.callerId,
+          callerName: c.callerName || 'User',
+          listenerId: c.creatorId,
+          listenerName: c.creatorName || 'Host',
+          type: c.type || 'voice',
+          status: c.status || 'completed',
+          duration: c.durationSeconds || 0,
+          coinsConsumed: c.coinsSpent || 0,
+          date: c.startedAt || new Date().toISOString()
+        }));
+
+        setCalls([...mappedActiveCalls, ...mappedHistoryCalls]);
+
+        setPayments(paymentsData.map((p: any) => ({
+          id: p.id,
+          userId: p.userId,
+          userName: p.userName || 'User',
+          amount: p.amount,
+          coins: p.coins,
+          gateway: p.gateway,
+          transactionId: p.transactionId,
+          status: p.status,
+          date: p.date
+        })));
+
+        setWithdrawRequests(withdrawData.map((w: any) => ({
+          id: w.id,
+          listenerId: w.creator_id,
+          listenerName: w.creator_name || 'Host',
+          amount: w.amount,
+          upiId: w.upi_id || 'N/A',
+          bankDetails: {
+            bankName: w.bank_name || 'N/A',
+            accountNo: w.account_number || 'N/A',
+            ifsc: w.ifsc_code || 'N/A',
+            holderName: w.account_name || 'N/A'
+          },
+          requestDate: w.created_at || new Date().toISOString(),
+          status: w.status || 'pending',
+          adminNote: w.admin_note
+        })));
+
+        setReports(MockDatabase.getReports());
+        setIsLive(true);
+        return;
+      }
+    } catch (e) {
+      console.warn('DashboardView failed to fetch live API data, falling back to mockDb:', e);
+    }
+
     setUsers(MockDatabase.getUsers());
     setListeners(MockDatabase.getListeners());
     setCalls(MockDatabase.getCalls());
     setPayments(MockDatabase.getPayments());
     setReports(MockDatabase.getReports());
     setWithdrawRequests(MockDatabase.getWithdrawRequests());
+    setIsLive(false);
+  };
+
+  useEffect(() => {
+    loadLiveDashboard();
   }, []);
 
   // Stats Calculations
@@ -90,9 +230,27 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   return (
     <div className="space-y-6">
       {/* Page Title */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard Overview</h1>
-        <p className="text-sm text-zinc-400">Real-time metrics, analytics, and platform health.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard Overview</h1>
+          <p className="text-sm text-zinc-400">Real-time metrics, analytics, and platform health.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase border flex items-center gap-1.5 ${
+            isLive 
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            {isLive ? 'Live Sync Active' : 'Fallback Sandbox'}
+          </span>
+          <button 
+            onClick={loadLiveDashboard}
+            className="px-3 py-1.5 bg-secondary text-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 border border-border"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}

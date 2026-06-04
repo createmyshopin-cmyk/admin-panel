@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Settings, Phone, Coins, Users, AlertTriangle } from 'lucide-react';
 import { MockDatabase, SystemSettings } from '../lib/mockDb';
+import { API_BASE, getHeaders } from '../lib/api';
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -31,10 +32,36 @@ export default function SettingsView() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  useEffect(() => {
+  const [isLive, setIsLive] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/settings`, { headers: getHeaders() });
+      if (res.ok) {
+        const s = await res.json();
+        setSettings(s);
+        setAppName(s.appName || 'CoinCalling');
+        setSupportEmail(s.supportEmail || 'support@coincalling.com');
+        setSupportWhatsapp(s.supportWhatsapp || '+91 99999 88888');
+        setVoiceCallsOn(s.voiceCallsOn !== undefined ? s.voiceCallsOn : true);
+        setVideoCallsOn(s.videoCallsOn !== undefined ? s.videoCallsOn : true);
+        setCallTimeout(s.callTimeout || 45);
+        setCoinRatePerMin(s.coinRatePerMin || 10);
+        setMinRecharge(s.minRecharge || 99);
+        setReferralBonus(s.referralBonus || 50);
+        setCommissionRate(s.commissionRate || 60);
+        setMinWithdrawal(s.minWithdrawal || 1000);
+        setAutoApproval(s.autoApproval !== undefined ? s.autoApproval : false);
+        setMaintenanceMode(s.maintenanceMode !== undefined ? s.maintenanceMode : false);
+        setIsLive(true);
+        return;
+      }
+    } catch (e) {
+      console.warn('SettingsView failed to fetch settings from API:', e);
+    }
+
     const s = MockDatabase.getSettings();
     setSettings(s);
-
     setAppName(s.appName);
     setSupportEmail(s.supportEmail);
     setSupportWhatsapp(s.supportWhatsapp);
@@ -48,10 +75,46 @@ export default function SettingsView() {
     setMinWithdrawal(s.minWithdrawal);
     setAutoApproval(s.autoApproval);
     setMaintenanceMode(s.maintenanceMode);
+    setIsLive(false);
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      const settingsRes = await fetch(`${API_BASE}/admin/settings`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          appName,
+          supportEmail,
+          supportWhatsapp,
+          callTimeout,
+          coinRatePerMin,
+          commissionRate
+        })
+      });
+
+      const maintenanceRes = await fetch(`${API_BASE}/admin/settings/maintenance`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          enabled: maintenanceMode
+        })
+      });
+
+      if (settingsRes.ok && maintenanceRes.ok) {
+        triggerToast('System configurations updated successfully!', 'success');
+        loadData();
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to save settings via API:', e);
+    }
 
     const newSettings: SystemSettings = {
       appName,
@@ -71,7 +134,7 @@ export default function SettingsView() {
 
     MockDatabase.saveSettings(newSettings);
     setSettings(newSettings);
-    triggerToast('System configurations updated successfully!', 'success');
+    triggerToast('System configurations updated successfully! (Sandbox)', 'success');
   };
 
   if (!settings) {
