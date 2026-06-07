@@ -1,63 +1,36 @@
-# admin-panel (Next.js Admin Console)
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-This is the web admin dashboard for the coin-based voice calling system. It provides platform metrics, system administration consoles, user profiles, creator records management, call history views, safety control reviews, and a complete financial dashboard (revenue analytics, coin sales tracking, top-creator statistics, payouts, and CSV reporting).
+## Getting Started
 
----
+First, run the development server:
 
-## Technical Stack
-- **Framework**: Next.js (React / TypeScript)
-- **Routing**: Next.js App Router
-- **Styling**: Tailwind CSS / Vanilla CSS
-- **APIs**: Rest API client connecting to `backend-api`
-
----
-
-## Local Development Setup
-
-### 1. Prerequisite Installations
-- Node.js (v18.x or v20.x recommended)
-- npm (v9.x or later)
-
-### 2. Dependency Installation
-Run the following command in the repository root directory:
-```bash
-npm install
-```
-
-### 3. Environment Variable Configuration
-Create a `.env.local` file at the root:
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-```
-Update the API URL parameter to point to your live `backend-api` instance if querying production data.
-
-### 4. Running the Development Server
-To launch the server with hot reloading:
 ```bash
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser to view the console.
 
-### 5. Compiling a Production Build
-To verify the dashboard compiles successfully:
-```bash
-npm run build
-```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
----
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Production Deployment: Vercel
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-Vercel is the recommended host for hosting Next.js applications:
+## Learn More
 
-1. **Create Repository**: Push this code to a private GitHub repository.
-2. **Setup Vercel Project**:
-   - Go to [Vercel.com](https://vercel.com) and log in.
-   - Click **Add New** → **Project** and import your repository.
-3. **Configure Environment Variables**:
-   - Add a key `NEXT_PUBLIC_API_URL` under the environment variables section.
-   - Set the value to the production URL of your hosted `backend-api` (e.g., `https://your-api.railway.app/api`).
-4. **Deploy**:
-   - Click **Deploy**. Vercel will automatically compile, optimize, and deploy the application.
-5. **Configuring Domain**:
-   - In your Vercel project settings, navigate to the **Domains** tab to link a custom dashboard subdomain (e.g., `admin.yourdomain.com`).
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

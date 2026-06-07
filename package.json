@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test:smoke": "node scripts/smoke-test-api.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

@@ -32,89 +32,59 @@ export default function SettingsView() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const [isLive, setIsLive] = useState(false);
-
-  const loadData = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/settings`, { headers: getHeaders() });
-      if (res.ok) {
-        const s = await res.json();
-        setSettings(s);
-        setAppName(s.appName || 'CoinCalling');
-        setSupportEmail(s.supportEmail || 'support@coincalling.com');
-        setSupportWhatsapp(s.supportWhatsapp || '+91 99999 88888');
-        setVoiceCallsOn(s.voiceCallsOn !== undefined ? s.voiceCallsOn : true);
-        setVideoCallsOn(s.videoCallsOn !== undefined ? s.videoCallsOn : true);
-        setCallTimeout(s.callTimeout || 45);
-        setCoinRatePerMin(s.coinRatePerMin || 10);
-        setMinRecharge(s.minRecharge || 99);
-        setReferralBonus(s.referralBonus || 50);
-        setCommissionRate(s.commissionRate || 60);
-        setMinWithdrawal(s.minWithdrawal || 1000);
-        setAutoApproval(s.autoApproval !== undefined ? s.autoApproval : false);
-        setMaintenanceMode(s.maintenanceMode !== undefined ? s.maintenanceMode : false);
-        setIsLive(true);
-        return;
-      }
-    } catch (e) {
-      console.warn('SettingsView failed to fetch settings from API:', e);
-    }
-
-    const s = MockDatabase.getSettings();
-    setSettings(s);
-    setAppName(s.appName);
-    setSupportEmail(s.supportEmail);
-    setSupportWhatsapp(s.supportWhatsapp);
-    setVoiceCallsOn(s.voiceCallsOn);
-    setVideoCallsOn(s.videoCallsOn);
-    setCallTimeout(s.callTimeout);
-    setCoinRatePerMin(s.coinRatePerMin);
-    setMinRecharge(s.minRecharge);
-    setReferralBonus(s.referralBonus);
-    setCommissionRate(s.commissionRate);
-    setMinWithdrawal(s.minWithdrawal);
-    setAutoApproval(s.autoApproval);
-    setMaintenanceMode(s.maintenanceMode);
-    setIsLive(false);
-  };
-
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/admin/settings`, { headers: getHeaders() });
+        if (res.ok && !cancelled) {
+          const s = await res.json();
+          setSettings(s);
+          setAppName(s.appName || '');
+          setSupportEmail(s.supportEmail || '');
+          setSupportWhatsapp(s.supportWhatsapp || '');
+          setVoiceCallsOn(s.voiceCallsOn ?? true);
+          setVideoCallsOn(s.videoCallsOn ?? true);
+          setCallTimeout(s.callTimeout ?? 45);
+          setCoinRatePerMin(s.coinRatePerMin ?? 10);
+          setMinRecharge(s.minRecharge ?? 99);
+          setReferralBonus(s.referralBonus ?? 50);
+          setCommissionRate(s.commissionRate ?? 60);
+          setMinWithdrawal(s.minWithdrawal ?? 1000);
+          setAutoApproval(s.autoApproval ?? false);
+          setMaintenanceMode(s.maintenanceMode ?? false);
+          return;
+        }
+      } catch (e) {
+        console.warn('Failed to fetch settings from API, using mock fallback:', e);
+      }
+
+      if (!cancelled) {
+        const s = MockDatabase.getSettings();
+        setSettings(s);
+        setAppName(s.appName);
+        setSupportEmail(s.supportEmail);
+        setSupportWhatsapp(s.supportWhatsapp);
+        setVoiceCallsOn(s.voiceCallsOn);
+        setVideoCallsOn(s.videoCallsOn);
+        setCallTimeout(s.callTimeout);
+        setCoinRatePerMin(s.coinRatePerMin);
+        setMinRecharge(s.minRecharge);
+        setReferralBonus(s.referralBonus);
+        setCommissionRate(s.commissionRate);
+        setMinWithdrawal(s.minWithdrawal);
+        setAutoApproval(s.autoApproval);
+        setMaintenanceMode(s.maintenanceMode);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    try {
-      const settingsRes = await fetch(`${API_BASE}/admin/settings`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          appName,
-          supportEmail,
-          supportWhatsapp,
-          callTimeout,
-          coinRatePerMin,
-          commissionRate
-        })
-      });
-
-      const maintenanceRes = await fetch(`${API_BASE}/admin/settings/maintenance`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          enabled: maintenanceMode
-        })
-      });
-
-      if (settingsRes.ok && maintenanceRes.ok) {
-        triggerToast('System configurations updated successfully!', 'success');
-        loadData();
-        return;
-      }
-    } catch (e) {
-      console.warn('Failed to save settings via API:', e);
-    }
 
     const newSettings: SystemSettings = {
       appName,
@@ -131,6 +101,29 @@ export default function SettingsView() {
       autoApproval,
       maintenanceMode
     };
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/settings`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(newSettings)
+      });
+
+      await fetch(`${API_BASE}/admin/settings/maintenance`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ enabled: maintenanceMode })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setSettings(updated);
+        triggerToast('System configurations updated successfully!', 'success');
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to save settings on API, using mock fallback:', e);
+    }
 
     MockDatabase.saveSettings(newSettings);
     setSettings(newSettings);
