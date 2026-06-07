@@ -11,7 +11,7 @@ import { API_BASE, getHeaders } from '../lib/api';
 
 interface ListenersViewProps {
   onRefreshStats?: () => void;
-  subTab?: 'active' | 'pending' | 'suspended' | 'withdrawals' | 'performance';
+  subTab?: 'active' | 'pending' | 'suspended' | 'rejected' | 'withdrawals' | 'performance';
 }
 
 export default function ListenersView({ onRefreshStats, subTab = 'active' }: ListenersViewProps) {
