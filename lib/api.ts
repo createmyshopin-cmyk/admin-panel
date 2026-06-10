@@ -2,8 +2,15 @@
 
 import { getToken, clearSession } from './auth';
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'https://api.creomine.com/api';
+/** Ensure API base always ends with /api (Vercel env often omits the suffix). */
+export function resolveApiBase(raw?: string): string {
+  const value = (raw ?? process.env.NEXT_PUBLIC_API_URL ?? 'https://api.creomine.com/api')
+    .trim()
+    .replace(/\/+$/, '');
+  return value.endsWith('/api') ? value : `${value}/api`;
+}
+
+export const API_BASE = resolveApiBase();
 
 export function getHeaders(): Record<string, string> {
   if (typeof window === 'undefined') {
