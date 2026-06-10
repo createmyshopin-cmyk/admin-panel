@@ -38,16 +38,39 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    const legacyAppToken = localStorage.getItem('token');
-    if (legacyAppToken && !localStorage.getItem('coincall_admin_token')) {
-      localStorage.removeItem('token');
-    }
-    if (!isAuthenticated()) {
-      router.replace('/login');
-      return;
-    }
-    setAdminUser(getAdminUser());
-    setAuthReady(true);
+    let cancelled = false;
+
+    const boot = async () => {
+      const legacyAppToken = localStorage.getItem('token');
+      if (legacyAppToken && !localStorage.getItem('coincall_admin_token')) {
+        localStorage.removeItem('token');
+      }
+      if (!isAuthenticated()) {
+        router.replace('/login');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: getHeaders() });
+        if (!res.ok) {
+          clearSession();
+          router.replace(`/login?reason=${res.status === 403 ? 'forbidden' : 'expired'}`);
+          return;
+        }
+        if (cancelled) return;
+        setAdminUser(getAdminUser());
+        setAuthReady(true);
+      } catch {
+        if (cancelled) return;
+        clearSession();
+        router.replace('/login?reason=network');
+      }
+    };
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   useEffect(() => {

@@ -2,11 +2,16 @@
 
 import { getToken, clearSession } from './auth';
 
-/** Ensure API base always ends with /api (Vercel env often omits the suffix). */
+const DEFAULT_API_BASE = 'https://api.creomine.com/api';
+
+/** Ensure API base is an absolute URL ending with /api. */
 export function resolveApiBase(raw?: string): string {
-  const value = (raw ?? process.env.NEXT_PUBLIC_API_URL ?? 'https://api.creomine.com/api')
-    .trim()
-    .replace(/\/+$/, '');
+  let value = (raw ?? process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_BASE).trim();
+  if (!value) value = DEFAULT_API_BASE;
+  if (!/^https?:\/\//i.test(value)) {
+    value = `https://${value}`;
+  }
+  value = value.replace(/\/+$/, '');
   return value.endsWith('/api') ? value : `${value}/api`;
 }
 

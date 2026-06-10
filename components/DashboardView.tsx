@@ -98,22 +98,43 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
 
       const responses = await Promise.all(
         endpoints.map(async (ep) => {
-          const res = await fetch(ep.url, { headers });
-          return { ...ep, res };
+          try {
+            const res = await fetch(ep.url, { headers });
+            return { ...ep, res, fetchError: null as Error | null };
+          } catch (fetchError) {
+            return {
+              ...ep,
+              res: null as Response | null,
+              fetchError: fetchError instanceof Error ? fetchError : new Error(String(fetchError)),
+            };
+          }
         }),
       );
 
-      const authRejected = responses.find((r) => r.res.status === 401 || r.res.status === 403);
-      if (authRejected) {
+      const networkFailed = responses.find((r) => r.fetchError);
+      if (networkFailed) {
+        setLoadError(
+          `Network error on ${networkFailed.key}. Sign out, then sign in again at /login.`,
+        );
+        setIsLive(false);
+        return;
+      }
+
+      const authRejected = responses.find(
+        (r) => r.res && (r.res.status === 401 || r.res.status === 403),
+      );
+      if (authRejected?.res) {
         handleAuthFailure(authRejected.res.status);
         setLoadError(connectionErrorMessage(classifyApiFailure(authRejected.res.status)));
         setIsLive(false);
         return;
       }
 
-      const usersRes = responses.find((r) => r.key === 'users')!;
-      if (!usersRes.res.ok) {
-        const failed = responses.filter((r) => !r.res.ok).map((r) => `${r.key} (${r.res.status})`);
+      const usersRes = responses.find((r) => r.key === 'users');
+      if (!usersRes?.res?.ok) {
+        const failed = responses
+          .filter((r) => r.res && !r.res.ok)
+          .map((r) => `${r.key} (${r.res!.status})`);
         setLoadError(
           failed.length
             ? `API errors: ${failed.join(', ')}. Redeploy Vercel after setting NEXT_PUBLIC_API_URL.`
@@ -148,7 +169,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       );
 
       const parseJson = async (r: (typeof responses)[number]) =>
-        r.res.ok ? r.res.json() : [];
+        r.res?.ok ? r.res.json() : [];
 
       const [activeCreatorsData, pendingCreatorsData, suspendedCreatorsData, activeCallsData, historyCallsData, paymentsData, withdrawData] =
         await Promise.all([
@@ -222,7 +243,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       setIsLive(true);
     } catch (e) {
       console.warn('DashboardView failed to fetch live API data:', e);
-      setLoadError('Network error reaching the API. Check CORS and Railway status.');
+      setLoadError('Unexpected error loading dashboard. Sign out and sign in again at /login.');
       setUsers([]);
       setListeners([]);
       setCalls([]);
