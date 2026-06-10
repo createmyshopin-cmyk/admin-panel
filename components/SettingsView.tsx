@@ -5,9 +5,18 @@ import React, { useState, useEffect } from 'react';
 import { Save, Settings, Phone, Coins, Users, AlertTriangle } from 'lucide-react';
 import { MockDatabase, SystemSettings } from '../lib/mockDb';
 import { API_BASE, getHeaders } from '../lib/api';
+import ModuleTabs from './ui/ModuleTabs';
+import ReleaseManagementView from './modules/ReleaseManagementView';
 import WelcomeCampaignsView from './WelcomeCampaignsView';
 
+const SETTINGS_TABS = [
+  { id: 'platform', label: 'Platform Settings' },
+  { id: 'releases', label: 'Release Management' },
+  { id: 'welcome', label: 'Welcome Campaigns' },
+];
+
 export default function SettingsView() {
+  const [settingsTab, setSettingsTab] = useState('platform');
   const [settings, setSettings] = useState<SystemSettings | null>(null);
 
   // Form states
@@ -149,10 +158,17 @@ export default function SettingsView() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Platform Settings</h1>
-        <p className="text-sm text-zinc-400">Configure core global configurations for calls, coin payouts, and support details.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Settings</h1>
+        <p className="text-sm text-zinc-400">Platform configuration, release management, and welcome campaigns.</p>
       </div>
 
+      <ModuleTabs tabs={SETTINGS_TABS} active={settingsTab} onChange={setSettingsTab} />
+
+      {settingsTab === 'releases' && <ReleaseManagementView />}
+
+      {settingsTab === 'welcome' && <WelcomeCampaignsView />}
+
+      {settingsTab === 'platform' && (
       <form onSubmit={handleSubmit} className="space-y-6 text-xs text-zinc-300">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -364,10 +380,7 @@ export default function SettingsView() {
         </button>
 
       </form>
-
-      <div className="mt-12 border-t border-zinc-800 pt-8">
-        <WelcomeCampaignsView />
-      </div>
+      )}
     </div>
   );
 }
