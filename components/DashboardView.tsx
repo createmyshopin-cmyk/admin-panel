@@ -15,6 +15,7 @@ import {
   handleAuthFailure,
 } from '../lib/api';
 import { normalizeLanguages } from '../lib/format';
+import { normalizeWithdrawalList } from '../lib/api/withdrawals';
 import LiveDataBanner from './LiveDataBanner';
 
 interface DashboardViewProps {
@@ -145,8 +146,9 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       }
 
       const usersData = await usersRes.res.json();
+      const userRows = Array.isArray(usersData) ? usersData : [];
       setUsers(
-        usersData.map((u: Record<string, unknown>) => ({
+        userRows.map((u: Record<string, unknown>) => ({
           id: String(u.id),
           name: String(u.fullName || u.full_name || u.name || 'Unknown User'),
           image: String(
@@ -168,18 +170,26 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         })),
       );
 
-      const parseJson = async (r: (typeof responses)[number]) =>
-        r.res?.ok ? r.res.json() : [];
+      const parseJsonArray = async (r: (typeof responses)[number]) => {
+        if (!r.res?.ok) return [];
+        const data = await r.res.json();
+        return Array.isArray(data) ? data : [];
+      };
+
+      const parseJsonRaw = async (r: (typeof responses)[number]) => {
+        if (!r.res?.ok) return null;
+        return r.res.json();
+      };
 
       const [activeCreatorsData, pendingCreatorsData, suspendedCreatorsData, activeCallsData, historyCallsData, paymentsData, withdrawData] =
         await Promise.all([
-          parseJson(responses.find((r) => r.key === 'creatorsActive')!),
-          parseJson(responses.find((r) => r.key === 'creatorsPending')!),
-          parseJson(responses.find((r) => r.key === 'creatorsSuspended')!),
-          parseJson(responses.find((r) => r.key === 'callsActive')!),
-          parseJson(responses.find((r) => r.key === 'callsHistory')!),
-          parseJson(responses.find((r) => r.key === 'payments')!),
-          parseJson(responses.find((r) => r.key === 'withdrawals')!),
+          parseJsonArray(responses.find((r) => r.key === 'creatorsActive')!),
+          parseJsonArray(responses.find((r) => r.key === 'creatorsPending')!),
+          parseJsonArray(responses.find((r) => r.key === 'creatorsSuspended')!),
+          parseJsonArray(responses.find((r) => r.key === 'callsActive')!),
+          parseJsonArray(responses.find((r) => r.key === 'callsHistory')!),
+          parseJsonArray(responses.find((r) => r.key === 'payments')!),
+          parseJsonRaw(responses.find((r) => r.key === 'withdrawals')!),
         ]);
 
       setListeners([
@@ -214,28 +224,29 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           amount: Number(p.amount),
           coins: Number(p.coins),
           gateway: String(p.gateway),
-          transactionId: String(p.transactionId),
+          transactionId: String(p.transactionId ?? p.gatewayPaymentId ?? ''),
           status: p.status as Payment['status'],
-          date: String(p.date),
+          date: String(p.date ?? p.createdAt ?? ''),
         })),
       );
 
+      const withdrawalPage = normalizeWithdrawalList(withdrawData);
       setWithdrawRequests(
-        withdrawData.map((w: Record<string, unknown>) => ({
+        withdrawalPage.items.map((w: Record<string, unknown>) => ({
           id: String(w.id),
           listenerId: String(w.creator_id ?? w.creatorId),
           listenerName: String(w.creator_name || 'Host'),
           amount: Number(w.amount),
-          upiId: String(w.upi_id || 'N/A'),
+          upiId: String(w.upiId ?? w.upi_id ?? 'N/A'),
           bankDetails: {
-            bankName: String(w.bank_name || 'N/A'),
-            accountNo: String(w.account_number || 'N/A'),
-            ifsc: String(w.ifsc_code || 'N/A'),
-            holderName: String(w.account_name || 'N/A'),
+            bankName: String(w.bank_name ?? w.bankName ?? 'N/A'),
+            accountNo: String(w.account_number ?? w.bankAccountNumber ?? 'N/A'),
+            ifsc: String(w.ifsc_code ?? w.bankIfsc ?? 'N/A'),
+            holderName: String(w.account_name ?? w.bankAccountName ?? 'N/A'),
           },
-          requestDate: String(w.created_at || new Date().toISOString()),
+          requestDate: String(w.createdAt ?? w.created_at ?? w.requestedAt ?? new Date().toISOString()),
           status: (w.status as WithdrawRequest['status']) || 'pending',
-          adminNote: w.admin_note ? String(w.admin_note) : undefined,
+          adminNote: (w.adminNotes ?? w.admin_note) ? String(w.adminNotes ?? w.admin_note) : undefined,
         })),
       );
 

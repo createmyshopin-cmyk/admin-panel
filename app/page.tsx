@@ -25,6 +25,7 @@ import FinanceDashboard from '../components/FinanceDashboard';
 
 import { MockDatabase, User, Listener } from '../lib/mockDb';
 import { API_BASE, getHeaders } from '../lib/api';
+import { normalizeWithdrawalList } from '../lib/api/withdrawals';
 import { clearSession, getAdminUser, isAuthenticated, type AdminUser } from '../lib/auth';
 
 export default function Home() {
@@ -126,8 +127,8 @@ export default function Home() {
       }
 
       if (withdrawsRes.ok) {
-        const withdrawsData = await withdrawsRes.json();
-        withdrawsCount = withdrawsData.filter((w: any) => w.status === 'pending').length;
+        const withdrawsData = normalizeWithdrawalList(await withdrawsRes.json());
+        withdrawsCount = withdrawsData.items.filter((w) => w.status === 'pending').length;
       }
 
       setPendingListenersCount(pendingCount);
