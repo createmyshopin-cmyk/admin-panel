@@ -39,7 +39,7 @@ export default function AdminSectionLayout({
     .toUpperCase();
 
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-card/90 backdrop-blur px-4 sm:px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 text-xs font-bold">

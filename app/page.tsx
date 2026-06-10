@@ -52,10 +52,17 @@ export default function Home() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('coincall_theme') as 'dark' | 'light' | null;
-    if (savedTheme) {
+    if (savedTheme === 'light' || savedTheme === 'dark') {
       setTheme(savedTheme);
     }
   }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark', 'light');
+    root.classList.add(theme);
+    localStorage.setItem('coincall_theme', theme);
+  }, [theme]);
 
   const handleLogout = () => {
     clearSession();
@@ -63,9 +70,7 @@ export default function Home() {
   };
 
   const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    localStorage.setItem('coincall_theme', nextTheme);
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
   };
   
   // States for stats badges
@@ -258,7 +263,7 @@ export default function Home() {
 
   if (!authReady) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">
+      <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
         Loading console…
       </div>
     );
@@ -269,8 +274,7 @@ export default function Home() {
   const initials = displayName.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <div className={theme}>
-      <div className="flex h-screen bg-background font-sans antialiased text-foreground transition-colors duration-200">
+    <div className="flex h-screen bg-background font-sans antialiased text-foreground transition-colors duration-200">
         
         {/* 1. STICKY SIDEBAR NAVIGATION */}
         <aside className="w-64 border-r border-border bg-card flex flex-col justify-between flex-shrink-0 transition-colors duration-200">
@@ -282,7 +286,7 @@ export default function Home() {
               </span>
               <div className="flex flex-col">
                 <span className="text-sm font-black text-foreground tracking-tight">CoinCalling</span>
-                <span className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase leading-none">Console</span>
+                <span className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase leading-none">Console</span>
               </div>
             </div>
 
@@ -302,7 +306,7 @@ export default function Home() {
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon size={16} className={isActive ? 'text-indigo-400' : 'text-zinc-500'} />
+                      <Icon size={16} className={isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-muted-foreground'} />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && item.badge > 0 ? (
@@ -326,13 +330,13 @@ export default function Home() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-foreground block truncate">{displayName}</span>
-                <span className="text-[10px] text-zinc-500 block capitalize truncate">{displayRole}</span>
+                <span className="text-[10px] text-muted-foreground block capitalize truncate">{displayRole}</span>
               </div>
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="p-1.5 text-zinc-500 hover:text-foreground rounded-lg hover:bg-secondary/60"
+              className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary/60"
               title="Sign out"
             >
               <LogOut size={14} />
@@ -407,12 +411,12 @@ export default function Home() {
 
       {/* 4. COMMAND PALETTE MODAL PANEL */}
       {isPaletteOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-24 px-4">
+        <div className="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm flex items-start justify-center pt-24 px-4">
           <div className="w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl overflow-hidden text-xs text-foreground">
             
             {/* Search Input bar */}
             <div className="p-3 border-b border-border flex items-center gap-2.5">
-              <Search size={16} className="text-zinc-500" />
+              <Search size={16} className="text-muted-foreground" />
               <input
                 ref={paletteInputRef}
                 type="text"
@@ -423,7 +427,7 @@ export default function Home() {
               />
               <button 
                 onClick={() => setIsPaletteOpen(false)}
-                className="p-1 hover:bg-secondary rounded text-zinc-500 hover:text-white"
+                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
               >
                 <X size={14} />
               </button>
@@ -446,12 +450,12 @@ export default function Home() {
                   </button>
                 ))
               ) : paletteQuery.trim() ? (
-                <div className="p-6 text-center text-zinc-500 font-medium">
+                <div className="p-6 text-center text-muted-foreground font-medium">
                   No records matching query.
                 </div>
               ) : (
-                <div className="p-6 text-center text-zinc-500 leading-relaxed font-semibold">
-                  Type a query to search, or try <span className="text-zinc-400">"users"</span>, <span className="text-zinc-400">"settings"</span>, or names like <span className="text-zinc-400">"Ishita"</span>.
+                <div className="p-6 text-center text-muted-foreground leading-relaxed font-semibold">
+                  Type a query to search, or try <span className="text-foreground/70">"users"</span>, <span className="text-foreground/70">"settings"</span>, or names like <span className="text-foreground/70">"Ishita"</span>.
                 </div>
               )}
             </div>
@@ -465,8 +469,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      </div>
     </div>
   );
 }
