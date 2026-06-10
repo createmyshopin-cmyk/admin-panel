@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Settings, Phone, Coins, Users, AlertTriangle } from 'lucide-react';
 import { MockDatabase, SystemSettings } from '../lib/mockDb';
 import { API_BASE, getHeaders } from '../lib/api';
+import WelcomeCampaignsView from './WelcomeCampaignsView';
 
 export default function SettingsView() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -363,6 +364,10 @@ export default function SettingsView() {
         </button>
 
       </form>
+
+      <div className="mt-12 border-t border-zinc-800 pt-8">
+        <WelcomeCampaignsView />
+      </div>
     </div>
   );
 }
